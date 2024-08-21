@@ -36,7 +36,18 @@ h5ad2list = function(filename,use.raw=FALSE,load.obsm=FALSE,load.X = TRUE,forSeu
     # Seurat for some reasons doesn't like underscores in feature names (don't ask me why)
     rownames(res$var) = gsub('_','-',rownames(res$var))
   }
-  rownames(res$X) = rownames(res$var)
+  # use regex to check if rownames(res$var) is gene symbol or ensembl id, if not, use feature names
+  # a gene symbol is a string that starts with a letter and contains only letters, numbers, underscores and dots
+  # an ensembl id is a string that starts with ENSG and contains only numbers and dots
+  is.gene.symbol = grepl('^[a-zA-Z][a-zA-Z0-9_\\.]*$',rownames(res$var))
+  is.ensembl.id = grepl('^ENSG[0-9\\.]*$',rownames(res$var))
+
+  if(any(!is.gene.symbol & !is.ensembl.id)){
+    geneNames<-h5ad2data.frame(filename,'var')$features
+    rownames(res$X)  <-rownames(res$var) <- geneNames
+  }else{
+    rownames(res$X) <- rownames(res$var)
+  }
   colnames(res$X) = rownames(res$obs)
 
   res$obsm = list()
